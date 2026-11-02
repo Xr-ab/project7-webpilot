@@ -6,11 +6,31 @@
 它不是"浏览器 Agent 平台"。差别在**可评测、可归因**：核心卖点不是"能做什么功能"，
 而是"每个功能的效果可以被测量"——这也是本 README 的排序逻辑：先给你看数字，再讲怎么跑，最后讲为什么这么设计。
 
-![视觉兜底演示](docs/img/canvas_vision.png)
+## 界面预览
 
-> 这页"销售看板"的所有信息都画在 canvas 里，DOM 中只有一块画布和一个空 div——
-> 读 DOM 的 Agent 在这里完全失明。WebPilot 检测到"稀疏 DOM + 视觉线索"后，截图喂给
-> glm-4v-flash 做一次**理解**（不是坐标定位），答出「5 月 4700」。这类页面是视觉兜底存在的唯一理由。
+| 首屏：任务表单 + 我的任务 + 结论 + 轨迹 | 执行轨迹：每步的动作、模型思考、页面截图、耗时 |
+|---|---|
+| ![首屏](assets/screenshots/01-overview.png) | ![执行轨迹](assets/screenshots/02-trace.png) |
+
+| 运行统计：成功率 / 平均步数 / 耗时 P50·P95 / Token 口径 | 审批停等：高风险动作暂停，等人批准或拒绝后再续跑 |
+|---|---|
+| ![运行统计](assets/screenshots/03-stats.png) | ![审批停等](assets/screenshots/04-approval.png) |
+
+> 轨迹那栏是"可归因"的物理载体：第 1 步点了什么、模型当时怎么想的、点完页面长什么样、
+> 这一步花了 103ms——都在同一行里。事后排查失败时，看的就是这条时间线。
+>
+> 第二组右边那张审批卡是**真停在那儿等人**，不是弹个确认框：任务状态落库为 `waiting_approval`，
+> worker 重启也还在；拒绝时写的那句理由会原样回喂给模型让它改道走。
+
+<details>
+<summary>为什么需要视觉兜底（点开看一张 DOM 看不见的页面）</summary>
+
+![视觉兜底演示](assets/screenshots/05-canvas-vision.png)
+
+这页"销售看板"的所有信息都画在 canvas 里，DOM 中只有一块画布和一个空 div——
+读 DOM 的 Agent 在这里完全失明。WebPilot 检测到"稀疏 DOM + 视觉线索"后，截图喂给
+glm-4v-flash 做一次**理解**（不是坐标定位），答出「5 月 4700」。这类页面是视觉兜底存在的唯一理由。
+</details>
 
 ---
 
@@ -122,7 +142,7 @@ shadow DOM 里的输入框 light DOM 永远看不见、"plan 没走完不许停"
 
 ---
 
-## 五个关键设计决策
+## 六个关键设计决策
 
 **1. 为什么用 LlamaIndex Workflows 写显式三步循环，不用 FunctionAgent**
 页面操作的关键是"动作执行后，页面变了什么必须回喂给模型再决定下一步"。显式拆成
@@ -150,8 +170,8 @@ glm-4v-flash 返回的是文字描述，把描述直接换算成点击坐标等�
 
 **6. 任务分解只做提醒、不做闸门**（送一个，因为它是最贵的一课）
 "plan 只是提醒，不是必须走完的清单：现在就能回答就 finish"——同一规则补一句
-"什么时候可以无视它"，行为完全反转。更多这类教训按"现象 → 定位 → 根因 → 修法"
-归档在 [`docs/踩坑日志.md`](docs/踩坑日志.md)（52 条，含主题索引）。
+"什么时候可以无视它"，行为完全反转。见 [ADR-007](docs/adr/007-任务分解只做提醒不做闸门.md)；
+更多这类教训按"现象 → 定位 → 根因 → 修法"归档在 [`docs/踩坑日志.md`](docs/踩坑日志.md)（52 条，含主题索引）。
 
 ---
 
@@ -189,6 +209,7 @@ backend/app/
 frontend/src/   React 19 + Vite：App / api.ts / ws.ts + 11 个组件
 testsite/       本地测试站（9 页，评测 10 题全靠它）
 scripts/        eval_p1 / eval_real / eval_ask / check_*(6 个) / cost_report / check_docker / doctor
+assets/         README 用的界面截图（make_screenshots.py 可重截，改前端不会漂移）
 docs/           评测报告 · 成本口径 · 踩坑日志(52 条) · ADR × 7 · 架构图
 ```
 
