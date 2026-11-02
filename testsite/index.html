@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>WebPilot 测试站</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; color: #1f2328; }
+    h1 { font-size: 24px; }
+    nav a { display: inline-block; margin: 0 12px 12px 0; padding: 8px 12px; border: 1px solid #d0d7de; border-radius: 6px; text-decoration: none; color: #0969da; }
+    .note { margin-top: 24px; padding: 12px; background: #f6f8fa; border-radius: 6px; color: #57606a; }
+  </style>
+</head>
+<body>
+  <h1>WebPilot 本地测试站</h1>
+  <p>这是给 Agent 练手用的站点，所有页面都在本地，结果可预期。</p>
+
+  <nav>
+    <a href="list.html" data-nav="list">产品列表</a>
+    <a href="form.html" data-nav="form">资料填写</a>
+    <a href="search.html" data-nav="search">商品搜索</a>
+    <a href="detail.html" data-nav="detail">商品详情</a>
+    <!-- P5b：需要登录才看得到内容的页面。未登录访问 account.html 会被弹到 login.html -->
+    <a href="account.html" data-nav="account">我的账户</a>
+    <a href="login.html" data-nav="login">登录</a>
+  </nav>
+
+  <div class="note">七个页面：列表、表单、搜索、详情、详情第二页、登录、我的账户。</div>
+
+  <!-- 下面两个是给快照功能做负向测试用的，真人看不到：
+       1. display:none 的链接 —— 快照里不应该出现（不可见元素不列）
+       2. disabled 按钮     —— 快照里也不应该出现（禁用的点不动，编号纯属浪费） -->
+  <a href="list.html" id="hidden-link" style="display:none">隐藏的列表入口</a>
+  <button id="disabled-btn" disabled>不可用按钮</button>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>登录</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px; color: #1f2328; }
+    label { display: block; margin-top: 14px; font-size: 14px; }
+    input { margin-top: 6px; padding: 6px 8px; width: 100%; box-sizing: border-box; border: 1px solid #d0d7de; border-radius: 6px; }
+    button { margin-top: 18px; padding: 8px 16px; border: 1px solid #d0d7de; border-radius: 6px; background: #f6f8fa; cursor: pointer; }
+    .error { margin-top: 16px; padding: 10px; background: #fdeceb; border: 1px solid #f5c2c0; border-radius: 6px; color: #b3261e; }
+    .note { margin-top: 24px; padding: 12px; background: #f6f8fa; border-radius: 6px; color: #57606a; font-size: 13px; }
+    .who { margin-top: 16px; color: #12805c; }
+  </style>
+</head>
+<body>
+  <h1>登录</h1>
+  <p><a href="index.html">返回首页</a></p>
+
+  <!-- P5b：这个页面的作用是让"登录态"这件事可被验证。
+       未登录访问 account.html 会被弹回来；登录后浏览器里有一个 wp_session cookie，
+       把它导出成 storage_state 加密存起来，后续任务开局就是登录态。 -->
+  <form id="login-form">
+    <label>账号
+      <input id="username" name="username" type="text" autocomplete="username" placeholder="请输入账号" />
+    </label>
+    <label>密码
+      <input id="password" name="password" type="password" autocomplete="current-password" placeholder="请输入密码" />
+    </label>
+    <button id="login-btn" type="submit">登录</button>
+  </form>
+
+  <div id="error" class="error" style="display:none"></div>
+  <div id="who" class="who" style="display:none"></div>
+
+  <div class="note">
+    测试账号：zhangsan（密码不展示——密码一旦印在页面上，就会随快照文本一起落进
+    每一条任务轨迹，任何"落盘无明文"的验收断言都会被页面正文击败）。
+    登录成功会写一个 <code>wp_session</code> cookie（只是账号名，不带签名——这是测试站，不模拟真实会话安全）。
+  </div>
+
+  <script>
+    // 账号表写死在前端：这是测试站，不模拟后端鉴权。
+    // 刻意不做成"随便填都能登录"——那样"密码错"这条负向路径就测不了，
+    // 而 P5b 的自动登录接口必须能如实反映"登录失败"。
+    const ACCOUNTS = { zhangsan: "pass1234", lisi: "pass5678" };
+
+    function currentUser() {
+      const m = document.cookie.match(/(?:^|;\s*)wp_session=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : "";
+    }
+
+    // 已登录就不该停在登录页（真实站点的常规行为）
+    const existing = currentUser();
+    if (existing) {
+      const box = document.getElementById("who");
+      box.style.display = "block";
+      box.innerHTML = '你已经登录为 <b>' + existing + '</b>，' +
+        '<a href="account.html">进入我的账户</a>';
+    }
+
+    document.getElementById("login-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const user = document.getElementById("username").value.trim();
+      const pass = document.getElementById("password").value;
+      const err = document.getElementById("error");
+
+      if (ACCOUNTS[user] !== pass) {
+        err.style.display = "block";
+        err.textContent = "账号或密码不正确";
+        return;
+      }
+
+      // 7 天有效期，path=/ 让 account.html 也读得到。
+      // 不加 SameSite/Secure：本地 http 环境下加了反而写不进去。
+      document.cookie = "wp_session=" + encodeURIComponent(user) + "; path=/; max-age=604800";
+      location.href = "account.html";
+    });
+  </script>
+</body>
+</html>

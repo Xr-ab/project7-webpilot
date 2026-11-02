@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>商品搜索</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; color: #1f2328; }
+    .search { display: flex; gap: 8px; margin-top: 16px; }
+    input { flex: 1; padding: 6px 8px; border: 1px solid #d0d7de; border-radius: 6px; }
+    button { padding: 6px 12px; border: 1px solid #d0d7de; border-radius: 6px; background: #f6f8fa; cursor: pointer; }
+    ul { margin-top: 16px; padding-left: 20px; }
+    .count { margin-top: 12px; color: #57606a; }
+  </style>
+</head>
+<body>
+  <h1>商品搜索</h1>
+  <p><a href="index.html">返回首页</a></p>
+
+  <div class="search">
+    <input id="keyword" type="text" placeholder="输入关键词搜索商品" />
+    <button id="search-btn" type="button">搜索</button>
+  </div>
+
+  <p id="result-count" class="count">共 0 条结果</p>
+  <ul id="result-list"></ul>
+
+  <script>
+    const catalog = ['无线鼠标', '机械键盘', '显示器', 'USB 集线器', '降噪耳机', '笔记本支架'];
+
+    function runSearch() {
+      const kw = document.getElementById('keyword').value.trim().toLowerCase();
+      const hits = catalog.filter(name => name.toLowerCase().includes(kw));
+      document.getElementById('result-count').textContent = `共 ${hits.length} 条结果`;
+      document.getElementById('result-list').innerHTML = hits.map(n => `<li>${n}</li>`).join('');
+    }
+
+    document.getElementById('search-btn').addEventListener('click', runSearch);
+  </script>
+</body>
+</html>

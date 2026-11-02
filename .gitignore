@@ -1,0 +1,39 @@
+# ===== 环境与敏感信息 =====
+# 密钥只在本机 .env，仓库里只留模板
+.env
+*.env
+!.env.example
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ===== 前端 =====
+node_modules/
+dist/
+build/
+
+# ===== 任务产物（运行时数据）=====
+# Agent 每跑一步就往这里写截图和轨迹 JSON，属于产物不是源码，不进版本库
+runs/
+
+# ===== 日志 / 临时 =====
+*.log
+logs/
+
+# ===== 工作区工具数据 =====
+# 本地记忆、会话草稿、临时校验图，跟项目本身无关
+.workbuddy/
+.trash_backup/
+
+# ===== IDE / 系统 =====
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

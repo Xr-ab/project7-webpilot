@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>产品列表</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; color: #1f2328; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid #d0d7de; }
+    .search { margin-top: 16px; display: flex; gap: 8px; }
+    input { padding: 6px 8px; border: 1px solid #d0d7de; border-radius: 6px; }
+    button { padding: 6px 12px; border: 1px solid #d0d7de; border-radius: 6px; background: #f6f8fa; cursor: pointer; }
+    .empty { color: #57606a; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <h1>产品列表</h1>
+  <p><a href="index.html">返回首页</a></p>
+
+  <div class="search">
+    <input id="keyword" type="text" placeholder="输入商品名筛选" />
+    <button id="search-btn" type="button">筛选</button>
+  </div>
+
+  <table id="product-table">
+    <thead>
+      <tr><th>名称</th><th>价格</th><th>分类</th></tr>
+    </thead>
+    <tbody id="product-body"></tbody>
+  </table>
+  <p id="empty-tip" class="empty" style="display:none">没有匹配的商品</p>
+
+  <script>
+    const products = [
+      { name: '无线鼠标', price: 89, category: '外设' },
+      { name: '机械键盘', price: 299, category: '外设' },
+      { name: '显示器', price: 1299, category: '显示' },
+      { name: 'USB 集线器', price: 59, category: '配件' },
+      { name: '降噪耳机', price: 899, category: '音频' },
+      { name: '笔记本支架', price: 129, category: '配件' },
+    ];
+
+    function render(list) {
+      const body = document.getElementById('product-body');
+      body.innerHTML = list.map(p =>
+        `<tr><td>${p.name}</td><td>¥${p.price}</td><td>${p.category}</td></tr>`
+      ).join('');
+      document.getElementById('empty-tip').style.display = list.length ? 'none' : 'block';
+    }
+
+    document.getElementById('search-btn').addEventListener('click', () => {
+      // 大小写不敏感：两边都转小写再比。
+      // 不转的话，输入 usb 匹配不到商品名里的 USB —— 用户实测踩到过这个坑
+      const kw = document.getElementById('keyword').value.trim().toLowerCase();
+      render(products.filter(p => p.name.toLowerCase().includes(kw)));
+    });
+
+    render(products);
+  </script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>我的账户</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; color: #1f2328; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eaeef2; }
+    th { color: #57606a; font-weight: 600; }
+    button { margin-top: 18px; padding: 8px 16px; border: 1px solid #d0d7de; border-radius: 6px; background: #f6f8fa; cursor: pointer; }
+    .who { margin-top: 8px; color: #12805c; }
+  </style>
+</head>
+<body>
+  <h1>我的账户</h1>
+  <p><a href="index.html">返回首页</a></p>
+
+  <!-- P5b：这是"必须登录才看得到"的页面。
+       没有 wp_session cookie 时**直接跳走**（模拟真实站点的行为）——
+       这也正好是验收点：没有登录态时 Agent 会卡在登录页；
+       注入了 storage_state 之后，同样的任务能直接读出下面的订单表。 -->
+  <div id="content" style="display:none">
+    <p class="who">当前登录：<b id="who-name">-</b></p>
+
+    <h2 style="font-size:16px;margin-top:24px">我的订单</h2>
+    <table id="orders">
+      <thead>
+        <tr><th>订单号</th><th>商品</th><th>金额</th><th>状态</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>WP-1001</td><td>机械键盘</td><td>¥299</td><td>已发货</td></tr>
+        <tr><td>WP-1002</td><td>无线鼠标</td><td>¥89</td><td>待付款</td></tr>
+        <tr><td>WP-1003</td><td>USB 集线器</td><td>¥59</td><td>已完成</td></tr>
+      </tbody>
+    </table>
+
+    <button id="logout-btn" type="button">退出登录</button>
+  </div>
+
+  <script>
+    function currentUser() {
+      const m = document.cookie.match(/(?:^|;\s*)wp_session=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : "";
+    }
+
+    const user = currentUser();
+    if (!user) {
+      // replace 而不是 href：不要在历史里留一条"未登录的账户页"，
+      // 否则按后退又弹回来，形成来回跳的循环（Agent 遇到会一直点）
+      location.replace("login.html");
+    } else {
+      document.getElementById("who-name").textContent = user;
+      document.getElementById("content").style.display = "block";
+      document.getElementById("logout-btn").addEventListener("click", function () {
+        document.cookie = "wp_session=; path=/; max-age=0";
+        location.replace("login.html");
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,1336 @@
+/* 手写 CSS，不引 UI 框架：
+   v0.1 只有三块界面（表单 / 结论 / 时间线），一个组件库的安装和心智成本都比它高。 */
+
+:root {
+  --bg: #f6f7f9;
+  --card: #ffffff;
+  --border: #e4e7ec;
+  --text: #1c1f23;
+  --muted: #6b7280;
+  --accent: #2f6fed;
+  --ok-bg: #e7f6ef;
+  --ok-fg: #12805c;
+  --bad-bg: #fdeceb;
+  --bad-fg: #b3261e;
+  --run-bg: #eaf1ff;
+  --run-fg: #2f6fed;
+  /* P5a 待审批：琥珀色。既不是"进行中"的蓝，也不是"失败"的红——
+     任务还活着，只是卡在等人，用这个色最不容易看错。 */
+  --warn-bg: #fdf3e3;
+  --warn-fg: #a86414;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.6 system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.app {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+}
+
+/* ---------- 顶栏 ---------- */
+.topbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.sub {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* 顶栏右侧：链接 + 账号 + 退出。
+   用 flex + gap 而不是给每个 <a> 加 margin-left —— M4 之后这里多了账号和退出按钮，
+   margin 方案会让新元素漏掉间距（实测会粘连成"接口文档kn-test@xxx退出"）。 */
+.links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.links a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.links a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- 布局 ---------- */
+.layout {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.main-col {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- 卡片 ---------- */
+.panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.panel h2 {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* ---------- 表单 ---------- */
+.field {
+  display: block;
+  margin-bottom: 14px;
+}
+
+.field > span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+
+.field textarea {
+  line-height: 1.55;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: 2px solid rgba(47, 111, 237, 0.25);
+  border-color: var(--accent);
+}
+
+.run {
+  width: 100%;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.run:disabled {
+  background: #a9bce0;
+  cursor: not-allowed;
+}
+
+.error {
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+  font-size: 13px;
+}
+
+.hint {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* ---------- 结论 ---------- */
+.result.empty p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.result-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.pill.ok {
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+
+.pill.bad {
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+}
+
+.pill.run {
+  background: var(--run-bg);
+  color: var(--run-fg);
+}
+
+.pill.idle {
+  background: #f0f1f3;
+  color: var(--muted);
+}
+
+/* 待审批（P5a）：琥珀色，和"执行中"（蓝）、"失败"（红）都区分开 */
+.pill.warn {
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+}
+
+.meta-item {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mono {
+  font-family: var(--mono);
+}
+
+.answer {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+}
+
+.answer .label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.answer p {
+  margin: 4px 0 0;
+  font-size: 15px;
+}
+
+.note {
+  margin: 12px 0 0;
+  color: var(--bad-fg);
+  font-size: 13px;
+}
+
+/* ---------- 时间线 ---------- */
+.muted {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 12px;
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.step {
+  padding: 10px 0 12px 14px;
+  border-left: 2px solid var(--border);
+}
+
+.step + .step {
+  margin-top: 4px;
+}
+
+.step.failed {
+  border-left-color: var(--bad-fg);
+}
+
+.step-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--run-bg);
+  color: var(--run-fg);
+  font-size: 12px;
+  flex: none;
+}
+
+.step.failed .num {
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+}
+
+.action {
+  font-family: var(--mono);
+  font-size: 13px;
+  background: #f4f5f7;
+  padding: 2px 8px;
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+
+.ms {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+  font-family: var(--mono);
+}
+
+.thought {
+  margin: 8px 0 0;
+  color: #374151;
+  font-size: 13px;
+}
+
+.step-error {
+  margin: 8px 0 0;
+  color: var(--bad-fg);
+  font-size: 13px;
+}
+
+.shot img {
+  display: block;
+  margin-top: 10px;
+  max-width: 280px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.shot img:hover {
+  border-color: var(--accent);
+}
+
+/* ---------- 语音输入 ---------- */
+.voice {
+  /* 上一个 .field 有 14px 下边距，这里回收一点，让按钮视觉上贴着输入框 */
+  margin: -4px 0 14px;
+}
+
+.mic {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  /* 按住说话时鼠标拖动会把文字选中，变成一片蓝色，很丑 */
+  user-select: none;
+  -webkit-user-select: none;
+  /* 触屏上不加这个，手指按住再挪动会被页面滚动抢走手势，录音按钮直接失效 */
+  touch-action: none;
+}
+
+.mic:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.mic:disabled {
+  background: #f8f9fa;
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+/* 小圆点：空闲灰、录音红闪。用颜色 + 动画两个信号，不靠文字说"正在录音" */
+.mic .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex: none;
+}
+
+.mic.on {
+  border-color: var(--bad-fg);
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+}
+
+.mic.on .dot {
+  background: var(--bad-fg);
+  animation: mic-pulse 1s ease-in-out infinite;
+}
+
+@keyframes mic-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.75);
+  }
+}
+
+.rec-hint {
+  margin-left: 8px;
+  color: var(--bad-fg);
+  font-size: 12px;
+}
+
+.voice-error {
+  margin: 8px 0 0;
+  color: var(--bad-fg);
+  font-size: 12px;
+}
+
+/* 嵌入式环境的提前警告：用灰蓝色而不是红色，
+   因为它不是"出错了"，是"这里本来就不行"——红色会让人以为是自己操作的问题 */
+.voice-warn {
+  margin: 8px 0 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ---------- 语音播报 ---------- */
+.speak {
+  /* 放在状态行的最右边：margin-left:auto 在 flex 容器里就是"推到末尾" */
+  margin-left: auto;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.speak:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--run-bg);
+}
+
+.speak:disabled {
+  color: var(--muted);
+  cursor: progress;
+}
+
+.speech {
+  margin-top: 12px;
+}
+
+.speech audio {
+  width: 100%;
+  max-width: 420px;
+  height: 36px;
+}
+
+/* ---------- 运行统计看板（M5c） ---------- */
+.stats-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.stats-head h2 {
+  margin: 0;
+}
+
+.stats-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stats-freshness {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* 数字卡网格：6 张卡，窄屏自动换行 */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.stat-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 600;
+  font-family: var(--mono);
+}
+
+.stat-sub {
+  color: var(--muted);
+  font-size: 11px;
+  /* 失败明细可能是一长串，允许换行别撑破卡片 */
+  overflow-wrap: anywhere;
+}
+
+/* 分任务表 */
+.stat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+
+.stat-table th,
+.stat-table td {
+  text-align: left;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.stat-table th {
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 12px;
+}
+
+/* 目标可能很长：单行截断，悬停看全文（title 属性） */
+.stat-goal {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stat-table td.good {
+  color: var(--ok-fg);
+  font-weight: 500;
+}
+
+.stat-table td.bad {
+  color: var(--bad-fg);
+  font-weight: 500;
+}
+
+/* 状态分布 pill 排 */
+.stat-dist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 看板的刷新按钮：轻量描边款，别跟主操作"运行"抢视觉 */
+.stats-refresh {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.stats-refresh:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.stats-refresh:disabled {
+  color: var(--muted);
+  cursor: progress;
+}
+
+/* ---------- 左列容器（TaskForm + 知识问答） ----------
+   为什么包一层：.layout 是两列 grid，左列现在有两个面板。
+   包成 flex column 后两个面板各自是 .panel 卡片，间距由 gap 统一控制。 */
+.side-col {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+/* ---------- 顶栏账号区 ---------- */
+.whoami {
+  color: var(--muted);
+  font-size: 13px;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.link-btn:hover {
+  color: var(--bad-fg);
+}
+
+/* ---------- 知识库问答（P4） ---------- */
+.ask-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ask-head h2 {
+  margin: 0;
+}
+
+.ask-sub {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ask-form {
+  display: flex;
+  gap: 8px;
+}
+
+.ask-input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  background: var(--card);
+  color: var(--text);
+}
+
+.ask-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.ask-btn {
+  padding: 8px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ask-btn:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.ask-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* 示例问题：一行小 chip，点一下直接问。
+   为什么给示例：用户不知道知识库里有什么，第一次用面对空输入框会卡住 */
+.ask-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.chip {
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.chip:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.chip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* 答案区：pre-wrap 保留模型输出的换行，模型常用列表排版 */
+.ask-answer {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: var(--run-bg);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.7;
+}
+
+.ask-answer.muted {
+  background: var(--bg);
+  border-left-color: var(--border);
+  color: var(--muted);
+}
+
+.ask-sources {
+  margin-top: 12px;
+}
+
+.ask-sources-title {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.ask-sources ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 来源条目：两行网格
+   第一行 [n] 标题（横跨到最右，尽量不被截断）
+   第二行     类型 + 相似度 …… 查看任务 / 原始页面
+   为什么不用 flex-wrap：实测标题会被动作按钮挤成"在产品..."，
+   信息全被省略号吃掉。网格把标题固定占满整行，动作按钮下沉到第二行。 */
+.ask-sources li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 3px 8px;
+  padding: 6px 8px;
+  background: var(--bg);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.ask-idx {
+  grid-row: 1 / span 2;
+  align-self: start;
+  color: var(--accent);
+  font-family: var(--mono);
+}
+
+.ask-src-title {
+  /* 第一行独占：从第 2 列一直吃到最后一列，标题能显示更多字 */
+  grid-column: 2 / -1;
+  grid-row: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ask-src-meta {
+  grid-column: 2;
+  grid-row: 2;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* 来源条目的两个动作：「查看任务」加载该任务轨迹、「原始页面」外链 */
+.ask-src-open {
+  grid-column: 3;
+  grid-row: 2;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--accent);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ask-src-open:hover {
+  border-color: var(--accent);
+  background: var(--run-bg);
+}
+
+.ask-src-link {
+  grid-column: 4;
+  grid-row: 2;
+  color: var(--muted);
+  font-size: 11px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ask-src-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+/* ---------- 登录卡片（M4 前端入口） ---------- */
+.auth-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.auth {
+  width: 100%;
+  max-width: 360px;
+}
+
+.auth h1 {
+  margin: 0 0 4px;
+  font-size: 22px;
+}
+
+.auth-sub {
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.auth-field {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.auth-field span {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.auth-field input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  background: var(--card);
+  color: var(--text);
+}
+
+.auth-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.auth-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.auth-secondary {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.auth-secondary:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.auth-secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ---------- 我的任务列表（M4 收尾） ---------- */
+/* 用原生 <details>/<summary> 做折叠：零 JS 状态，点标题就能开合。
+   去掉默认的三角标记，换成自己画的小箭头。 */
+.my-tasks > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Safari/Chrome 都会给 summary 加一个默认三角，这里一并去掉 */
+.my-tasks > summary::-webkit-details-marker {
+  display: none;
+}
+
+.my-tasks-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 数量徽章：让折叠状态下也能一眼看到"我有几条任务" */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: var(--run-bg);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--mono);
+}
+
+.my-tasks-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 每条任务一行：状态胶囊 + 目标（可截断）+ 步数。
+   用 grid 而不是 flex：目标文本要能被压缩（minmax(0,1fr)），
+   否则长 goal 会把后面的步数挤出血。 */
+.my-task-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.my-task-item:hover {
+  border-color: var(--accent);
+}
+
+.my-task-goal {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-task-meta {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* ---------- 审批卡片（P5a-4） ---------- */
+/* 琥珀色左边框：和"待审批"胶囊（.pill.warn）同一个色系，
+   让"这个任务在等你"在视觉上和状态标签对得上。 */
+.approval {
+  border-left: 3px solid var(--warn-fg);
+  background: linear-gradient(180deg, var(--warn-bg) 0%, var(--card) 42%);
+}
+
+/* 说明"批准之后会发生什么"。紧贴上面的暂停地址，不占 12px 的大间距——
+   它和地址是同一组信息（这块的技术细节），视觉上归在一起。 */
+.approval-resume-hint {
+  margin-top: 6px;
+}
+
+/* 主句：Agent 想干什么 + 为什么停。字号比正文大一点，
+   因为整张卡片就是为这一句存在的。 */
+.approval-ask {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+/* 技术细节：和 trace 里的动作行对得上，用于事后核对。
+   刻意做小做灰——人不需要读它也能做决定。 */
+.approval-tech {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* 暂停页地址：单行截断 + title 悬停看全文。
+   地址可能很长，换行会把卡片撑得很乱。 */
+.approval-url {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.approval-note {
+  margin-top: 14px;
+  margin-bottom: 4px;
+}
+
+/* 说明"这段文字在两种决定下用途不同"。
+   紧贴输入框、不占 margin-top，才看得出它是在解释上面那个框。 */
+.approval-note-hint {
+  margin-top: 0;
+}
+
+.approval-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+/* 覆盖 .run 的 width:100%（那是给表单里的单个主按钮用的），
+   这里是两个按钮并排，各占一半 */
+.approval-approve,
+.approval-reject {
+  width: auto;
+  flex: 1 1 160px;
+  padding: 9px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.approval-approve {
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+}
+
+.approval-approve:disabled {
+  background: #a9bce0;
+  cursor: not-allowed;
+}
+
+/* 拒绝不做成红色按钮：它不是"危险操作"，而是另一条合法路径。
+   红色会让人下意识觉得"点它是搞破坏"，于是倾向于闭眼点批准。 */
+.approval-reject {
+  background: var(--card);
+  color: var(--text);
+}
+
+.approval-reject:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.approval-reject:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+/* ---------- 登录态面板（P5b） ---------- */
+/* 收起时只有一行高。它是个低频操作（一年点几次），
+   却同时是下面任务表单那个下拉的数据源，所以必须在视线范围内。 */
+.credential {
+  padding: 14px 18px;
+}
+
+/* 头部做成整行按钮：点哪都能展开，比只有文字可点好按得多。
+   button 的默认样式（背景、边框、字体）全部清掉，让它看起来就是一行标题。 */
+.credential-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.credential-head h2 {
+  margin: 0;
+  flex: 1;
+}
+
+.credential-count {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* "管理 / 收起"用强调色：它是唯一的可点提示，灰掉就看不出这行能点 */
+.credential-caret {
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.credential-hint {
+  margin: 6px 0 0;
+}
+
+.credential.open {
+  padding-bottom: 18px;
+}
+
+.credential-list {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.credential-list li {
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #fbfcfd;
+}
+
+/* 过期的那份只加一道左边框，不整块变红：
+   cookie 的 expires 只是个声明，很多站点实际还能用——后端也是这个态度
+   （过期不阻断任务，只提示），界面不该比后端的判断更绝对。 */
+.credential-list li.expired {
+  border-left: 3px solid var(--warn-fg);
+}
+
+.credential-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.credential-label {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.credential-del {
+  flex: none;
+}
+
+.credential-meta {
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+/* 用虚线分隔"已有的"和"新存的"：两块在同一张卡片里，
+   但要让人一眼看出上面是列表、下面是表单，别混着读。 */
+.credential-form {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+}
+
+.credential-note {
+  margin-top: 0;
+}
+
+/* ---------- 结论区的登录态提示（P5b） ---------- */
+/* 放在答案上方，一行小字。warn 档用琥珀底：
+   和"待审批"同一个色系，含义也一致——"有件事你该知道，但没失败"。 */
+.run-credential {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.run-credential.warn {
+  padding: 6px 10px;
+  border-radius: 7px;
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+}
+
+/* ---------- 语音会话面板（P6b） ---------- */
+/* 会话日志限高 + 滚动：语音是连续流，不给高度上限会把整个左列顶下去。
+   160px ≈ 5~6 条气泡，够看到上一轮，又不抢任务表单的位置。 */
+.voice-session .vs-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vs-badge {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* 三档状态色：连接中/重连中走中性灰，已连接走绿，不可用走红。
+   不用 emoji：状态说明要能一眼看清，符号够用。 */
+.vs-badge.ready { color: #1a7f37; }
+.vs-badge.failed { color: #cf222e; }
+
+.vs-hint {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.vs-log {
+  max-height: 160px;
+  overflow-y: auto;
+  margin: 12px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+
+.vs-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* 气泡按角色区分：你 / Agent / 系统。系统消息用斜体灰，避免和答案抢注意力 */
+.vs-line {
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.vs-line.you { color: #0969da; }
+.vs-line.agent { color: #1f2328; }
+.vs-line.sys { color: var(--muted); font-style: italic; }
+
+.vs-who {
+  display: inline-block;
+  min-width: 44px;
+  margin-right: 6px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* 播报中的打断条：整条可点，比一个小按钮好按 */
+.vs-barge {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: var(--warn-bg, #fff8e5);
+  color: var(--warn-fg, #7a5b00);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.vs-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vs-mic {
+  padding: 9px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none; /* 按住说话时别让浏览器选中文字 */
+}
+
+.vs-mic.on {
+  border-color: #cf222e;
+  color: #cf222e;
+}
+
+.vs-mic:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.vs-error {
+  margin: 8px 0 0;
+  color: #cf222e;
+  font-size: 12px;
+}

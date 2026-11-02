@@ -1,0 +1,127 @@
+# WebPilot 全栈：一条 docker compose up -d 起 pg + redis + api + worker + web。
+#
+# 端口分配的取舍（本机实测过冲突，别乱改）：
+# - web  8080 → 容器 80。**人只访问这一个端口**，其余都是内部链路
+# - api  8000 → 宿主机，留给 scripts/eval_*.py 和 curl 用
+# - pg / redis **不发布端口**。理由：宿主机 5432/5433/6379/6380 已被别的项目占用
+#   （本机同时跑着 p6-postgres、wp-postgres 等实例），发布出去必然撞车；
+#   而容器之间走服务名解析，根本不需要宿主机端口。
+#   要进库看数据：docker compose exec pg psql -U webpilot -d webpilot
+#
+# 环境变量分两层：
+# - env_file: .env      —— 你填的密钥和业务开关（LLM_API_KEY / VOICE_ENABLED / ...）
+# - environment:        —— 本文件覆盖的"容器内部地址"，优先级高于 env_file
+#   为什么必须覆盖：.env 里写的是 127.0.0.1:5433（宿主机视角），
+#   在容器里 127.0.0.1 指的是容器自己，连不上任何东西 ——
+#   这是新人用 compose 最经典的一跤。
+
+name: webpilot
+
+# ---- api 与 worker 共用的那部分 ----
+# 关键在 image: 两边写**同一个 tag**：compose 只会构建一次，两个容器用同一份镜像。
+# 不写 image 的话（只在两个服务里各写 build），compose 会构建出 webpilot-api 和
+# webpilot-worker 两份内容完全相同的镜像 —— 每个 ~1.5GB（Chromium 占大头），
+# 白白多占一倍磁盘，而且升级时还得记得两边都重建。
+x-backend: &backend
+  build:
+    context: .
+    dockerfile: backend/Dockerfile
+  image: webpilot-backend:local
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql+asyncpg://webpilot:webpilot@pg:5432/webpilot
+    REDIS_URL: redis://redis:6379/0
+    # 末尾追加 api：容器模式下测试站地址是 http://api:8000/testsite/...，
+    # 白名单是按 host 精确匹配的，不加这一项任务会被直接判 bad_url。
+    # 前面用 ${ALLOWED_HOSTS:-默认值} 是为了保留你 .env 里配的真实站点。
+    ALLOWED_HOSTS: ${ALLOWED_HOSTS:-127.0.0.1,localhost},api
+    # 语音任务的默认起始页：start_url 最终由 worker 容器里的 Chromium 导航，
+    # 它的 127.0.0.1 不是 api —— 不配这条语音任务必 nav_failed（check_voice_ws 实测）
+    DEFAULT_START_URL: http://api:8000/testsite/index.html
+    # 模型缓存的固定路径，见下方 hfcache 卷
+    HF_HOME: /root/.cache/huggingface
+
+services:
+  pg:
+    # 必须是带 pgvector 的镜像：迁移 0002 里第一句就是 CREATE EXTENSION vector，
+    # 用官方 postgres:16 会直接报 type "vector" does not exist
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: webpilot
+      POSTGRES_PASSWORD: webpilot
+      POSTGRES_DB: webpilot
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # 用 pg_isready 而不是"端口能不能连"：pg 启动过程中会先监听端口、
+      # 之后才 ready for connections，只看端口会让 api 早到一步然后迁移失败
+      test: ["CMD-SHELL", "pg_isready -U webpilot -d webpilot"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    <<: *backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      pg:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      # 任务产物：api 要读（对外发截图）、worker 要写，两边必须挂同一个卷。
+      # 用 bind mount 而不是命名卷：scripts/ 下的评测、回放器、check_* 都直接读
+      # 宿主机的 runs/ 目录（trace.json 只写文件不进库），命名卷会让宿主机工具全瞎。
+      # 代价是绑定路径不可移植——本项目定位是本机/单机部署，可接受。
+      - ./runs:/app/runs
+      # ASR 模型（464MB）+ embedding 模型。不挂卷的话每次重建容器都要重新下，
+      # 而国内直连 huggingface 会 502，得走 HF_ENDPOINT 镜像（见 .env.example）
+      - hfcache:/root/.cache/huggingface
+    healthcheck:
+      # 用 python 而不是 curl：slim 镜像里没有 curl，为了健康检查再装一个包不值得。
+      # start_period 给到 120s：首次启动要跑迁移 + 加载 ASR 预热，不是挂死。
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 120s
+
+  worker:
+    <<: *backend
+    # 覆盖镜像默认 CMD：worker 不跑迁移（迁移只能有一个执行者，
+    # 两个容器同时 upgrade 会抢 DDL 锁），只消费队列
+    command: ["python", "-m", "arq", "app.worker.WorkerSettings"]
+    depends_on:
+      # 等 api 健康再起：api 负责跑迁移，worker 一起来就要查表，
+      # 表还没建好它会刷一串 UndefinedTable 报错（能自愈，但日志很吓人）
+      api:
+        condition: service_healthy
+    volumes:
+      - ./runs:/app/runs
+      - hfcache:/root/.cache/huggingface
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    image: webpilot-web:local
+    ports:
+      # 8080 是给人用的入口；80 在宿主机可能被别的服务占着
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  hfcache:
+  # runs 不用命名卷了：改成了上面的 ./runs bind mount（宿主机工具链要直接读盘）

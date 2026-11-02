@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>资料填写</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; color: #1f2328; }
+    label { display: block; margin-top: 14px; font-size: 14px; }
+    input, select { margin-top: 6px; padding: 6px 8px; width: 100%; box-sizing: border-box; border: 1px solid #d0d7de; border-radius: 6px; }
+    button { margin-top: 18px; padding: 8px 16px; border: 1px solid #d0d7de; border-radius: 6px; background: #f6f8fa; cursor: pointer; }
+    .success { margin-top: 20px; padding: 12px; background: #e6f4ea; border: 1px solid #b7e1c1; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>资料填写</h1>
+  <p><a href="index.html">返回首页</a></p>
+
+  <form id="profile-form">
+    <label>姓名
+      <input id="name" name="name" type="text" placeholder="请输入姓名" />
+    </label>
+    <label>邮箱
+      <input id="email" name="email" type="email" placeholder="name@example.com" />
+    </label>
+    <label>城市
+      <select id="city" name="city">
+        <option value="">请选择</option>
+        <option value="fuzhou">福州</option>
+        <option value="xiamen">厦门</option>
+        <option value="hangzhou">杭州</option>
+      </select>
+    </label>
+    <label>
+      <input id="subscribe" name="subscribe" type="checkbox" style="width:auto" /> 订阅产品更新
+    </label>
+    <button id="submit-btn" type="submit">提交</button>
+  </form>
+
+  <div id="success" class="success" style="display:none"></div>
+
+  <script>
+    document.getElementById('profile-form').addEventListener('submit', (event) => {
+      event.preventDefault();  // 纯前端页面，不真的提交
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const city = document.getElementById('city').value;
+      const subscribe = document.getElementById('subscribe').checked;
+      document.getElementById('success').style.display = 'block';
+      document.getElementById('success').textContent =
+        `提交成功：姓名=${name}，邮箱=${email}，城市=${city || '未填'}，订阅=${subscribe ? '是' : '否'}`;
+    });
+  </script>
+</body>
+</html>

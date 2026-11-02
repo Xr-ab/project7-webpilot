@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>销售看板（canvas 版）</title>
+  <!--
+    这一页是 P6 视觉兜底的专用测试页（A4）。
+
+    为什么要有它：现有测试站的页面全是 DOM 元素，快照功能能读得干干净净，
+    视觉兜底没有用武之地。这一页把**所有信息都画在 canvas 里**——
+    DOM 里只有一块 <canvas>，快照看到的就是一个黑盒：
+    没有文字、没有按钮、没有数字。只有截图 + 视觉模型才知道图上画了什么。
+
+    埋的"标准答案"（A5 的 check_vision.py 会断言模型说得出）：
+    - 6 个月的销量：3200 / 2800 / 4100 / 3600 / 4700 / 4200
+    - 最高的月份：5 月，4700
+    - 两个 canvas 按钮：「导出数据」「刷新数据」
+
+    ⚠️ 页面下方的 DOM 说明文字里**不许写这些数字**。
+    写了就等于把答案从截图上搬到正文里，快照一读就拿到，
+    测的就不再是视觉能力了（P5b 的教训：登录页印密码，把脱敏断言全打败了）。
+  -->
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 960px; margin: 32px auto; padding: 0 16px; color: #1f2328; }
+    h1 { font-size: 20px; }
+    canvas { border: 1px solid #d0d7de; border-radius: 8px; cursor: pointer; }
+    .note { margin-top: 16px; padding: 12px; background: #f6f8fa; border-radius: 6px; color: #57606a; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>销售看板（canvas 版）</h1>
+
+  <!-- 注意：给 canvas 加了 onclick 属性，是为了让它出现在快照的元素清单里
+       （快照只列"可交互"元素）。这样 elements_total=1，
+       正好命中视觉兜底条件 1「可交互元素 < 3 且有 canvas」。
+       点击行为由下面的 JS 处理——不靠 DOM 按钮，因为页面上根本没有 DOM 按钮。 -->
+  <canvas id="board" width="900" height="520" onclick="handleCanvasClick(event)"></canvas>
+
+  <div class="note">
+    这一页的所有信息都画在画面里，DOM 中只有一块画布和一个空 div。
+    Agent 拿 DOM 快照看不到任何可读内容——这类页面是「视觉兜底」存在的唯一理由。
+  </div>
+
+  <script>
+    const canvas = document.getElementById('board');
+    const ctx = canvas.getContext('2d');
+
+    // 数据（标准答案就在这里，但只有画面能看见）
+    const MONTHS = ['1月', '2月', '3月', '4月', '5月', '6月'];
+    const SALES = [3200, 2800, 4100, 3600, 4700, 4200];
+
+    // 两个 canvas 按钮的矩形区域（点击判定用；同时要画出来）
+    const BTN_EXPORT = { x: 40, y: 450, w: 130, h: 44, label: '导出数据' };
+    const BTN_REFRESH = { x: 190, y: 450, w: 130, h: 44, label: '刷新数据' };
+    let toast = '';
+
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    function drawButton(btn) {
+      ctx.fillStyle = '#409eff';
+      roundRect(btn.x, btn.y, btn.w, btn.h, 8);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '18px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(btn.label, btn.x + btn.w / 2, btn.y + btn.h / 2);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+    }
+
+    function draw() {
+      // 背景
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 标题
+      ctx.fillStyle = '#1f2328';
+      ctx.font = 'bold 24px system-ui, sans-serif';
+      ctx.fillText('月度销售看板 · 2026 上半年', 40, 46);
+
+      // 坐标区：x 从 90 到 840，y 从 90（5000）到 390（0）
+      const left = 90, right = 840, top = 90, bottom = 390;
+      const maxValue = 5000;
+
+      // 横向网格线 + Y 轴刻度（每 1000 一条）
+      ctx.strokeStyle = '#e5e7eb';
+      ctx.fillStyle = '#57606a';
+      ctx.font = '14px system-ui, sans-serif';
+      for (let v = 0; v <= maxValue; v += 1000) {
+        const y = bottom - (v / maxValue) * (bottom - top);
+        ctx.beginPath();
+        ctx.moveTo(left, y);
+        ctx.lineTo(right, y);
+        ctx.stroke();
+        ctx.fillText(String(v), 46, y + 5);
+      }
+
+      // 折线 + 数据点 + 每月数值标签
+      const stepX = (right - left) / (SALES.length - 1);
+      const pointY = (v) => bottom - (v / maxValue) * (bottom - top);
+
+      ctx.strokeStyle = '#1a7f37';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      SALES.forEach((v, i) => {
+        const x = left + stepX * i;
+        if (i === 0) ctx.moveTo(x, pointY(v));
+        else ctx.lineTo(x, pointY(v));
+      });
+      ctx.stroke();
+      ctx.lineWidth = 1;
+
+      SALES.forEach((v, i) => {
+        const x = left + stepX * i;
+        const y = pointY(v);
+        // 点
+        ctx.fillStyle = '#1a7f37';
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        // 数值标签（在点上方，避免压线）
+        ctx.fillStyle = '#1f2328';
+        ctx.font = 'bold 15px system-ui, sans-serif';
+        ctx.fillText(String(v), x - 18, y - 14);
+        // 月份（在底部）
+        ctx.fillStyle = '#57606a';
+        ctx.font = '15px system-ui, sans-serif';
+        ctx.fillText(MONTHS[i], x - 12, bottom + 26);
+      });
+
+      // canvas 按钮 + 反馈（点击后才出现）
+      drawButton(BTN_EXPORT);
+      drawButton(BTN_REFRESH);
+      if (toast) {
+        ctx.fillStyle = '#8c6d1f';
+        ctx.font = '16px system-ui, sans-serif';
+        ctx.fillText(toast, 340, 478);
+      }
+    }
+
+    // 点击判定：坐标落在哪个按钮矩形里就出对应反馈。
+    // 这段逻辑对 DOM 快照完全不可见——Agent 就算知道"这里有个按钮"，
+    // 也点不到它（没有元素可点），正是视觉兜底要暴露的能力边界。
+    function handleCanvasClick(event) {
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const hit = (b) => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
+
+      if (hit(BTN_EXPORT)) toast = '已导出：sales_2026H1.csv';
+      else if (hit(BTN_REFRESH)) {
+        toast = '数据已刷新（演示）';
+        draw();
+      } else toast = '';
+      draw();
+    }
+
+    draw();
+  </script>
+</body>
+</html>

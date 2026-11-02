@@ -1,0 +1,20 @@
+# 构建上下文要排除的东西。
+#
+# ⚠️ 最重要的是 .venv：它在本机是指向 uv 环境的 junction，
+# 里面有几个 GB 的 site-packages。不排除的话 docker build 会把整个环境
+# 打包进上下文（慢到像卡死），而且全无用处——容器里依赖是 pip 重新装的。
+.venv
+runs
+.git
+.pytest_cache
+__pycache__
+*.pyc
+.trash_backup
+
+# 前端：容器里自己 npm ci 重建，不搬本机的 node_modules（含平台相关二进制）
+frontend/node_modules
+frontend/dist
+
+# 本机配置与密钥
+.env
+*.log
