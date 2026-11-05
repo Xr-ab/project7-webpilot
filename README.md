@@ -83,6 +83,12 @@ flowchart LR
 
 ## 快速开始
 
+**Windows 一键版**：clone 后双击 [`start.bat`](start.bat)。它会自动生成并打开 `.env` 让你填 key（智谱免费档即可）、没开 Docker 就拉起 Docker Desktop、起五个容器、等就绪后自动打开浏览器；停止双击 [`stop.bat`](stop.bat)，数据保留。
+
+> 脚本提示是英文的，不是偷懒：`.bat` 里写中文注释在别的电脑上会被 cmd 按本机代码页错误解析直接炸掉（UTF-8 中文 bat 实测乱码），所以脚本本体全 ASCII，中文说明都在这。
+
+命令行版（macOS / Linux / 或不想点脚本）：
+
 ```bash
 cp .env.example .env        # 填入 LLM_API_KEY（智谱开放平台申请，免费档即可）
 docker compose up -d        # 一条命令起 pg + redis + api + worker + web
